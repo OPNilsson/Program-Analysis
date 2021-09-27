@@ -2,7 +2,7 @@
 """Lexer.py: Parses Micro C language with the goal of creating http://www.formalmethods.dk/pa4fun/"""
 from stack import Stack
 import re
-class Parser:
+class Lexer:
     # Checks two characters and returns whether they are a pair or not
     def __init__(self,microc):
         self.microc = microc
@@ -39,7 +39,6 @@ class Parser:
     def find_assignments(self):
         x = re.findall('. := .',self.microc)
         return x
-
 
 
 

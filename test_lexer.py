@@ -1,5 +1,6 @@
 from parser_file import INTEGER, MUL, DIV, LPAR, RPAR, EOF, PLUS, MINUS 
 
+
 class Token(object):
     def __init__(self, type, value):
         self.type = type
@@ -94,3 +95,41 @@ class Lexer(object):
             self.error()
 
         return Token(EOF, None)
+
+        # OLD METHODS TODO: Delete this comment section
+    # def __init__(self,microc):
+    #     self.microc = microc
+    #     self.rules = {}
+    #
+    #     assignment = {
+    #         'variable_assignment' : ':=',
+    #         'array_assignment' : '.[.]=.'
+    #     }
+    #     arithmetic = {
+    #         'abs' : '|x|',
+    #         'plus' : '+',
+    #         'minus':'-',
+    #         'division' : '/',
+    #         'multiplication':'*'
+    #     }
+    #     self.loops = {
+    #         'for_loop':'for(){}',
+    #         'while_loop':'while(){}'
+    #     }
+    #     comparrison = {
+    #         'if':'if()',
+    #         'equals':'=',
+    #         'leq':'>',
+    #         'req':'<'
+    #     }
+    #
+    # def find_loops(self):
+    #     i = 'for'
+    #     re.match('for')
+    #     y = re.findall(r'(?=' + re.escape(i) + r').*?(?<=})',self.microc)
+    #     return y
+    #
+    # def find_assignments(self):
+    #     x = re.findall('. := .',self.microc)
+    #     return x
+

@@ -5,6 +5,7 @@
 ########################################################################################################################
 import string
 
+
 class Error:
 
     def __init__(self, pos_start, pos_end, error_name, details):
@@ -20,11 +21,3 @@ class Error:
         result += f'\nFile: {self.pos_start.fn}, line {self.pos_start.ln + 1}'
         return result
 
-
-class IllegalCharError(Error):
-    def __init__(self, pos_start, pos_end, details):
-        super().__init__(pos_start, pos_end, 'Illegal Character', details)
-
-class ExpectedCharError(Error):
-    def __init__(self, pos_start, pos_end, details):
-        super().__init__(pos_start, pos_end, 'Expected Character', details)

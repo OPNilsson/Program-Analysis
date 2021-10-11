@@ -26,6 +26,7 @@ class IllegalCharError(Error):
     def __init__(self, pos_start, pos_end, details):
         super().__init__(pos_start, pos_end, 'Illegal Character', details)
 
+
 class ExpectedCharError(Error):
     def __init__(self, pos_start, pos_end, details):
         super().__init__(pos_start, pos_end, 'Expected Character', details)
@@ -70,6 +71,7 @@ class Position:
 # Variables
 TT_INT = 'INT'
 TT_FLOAT = 'FLOAT'
+TT_STRING = 'STRING'
 
 # Arithmetic
 TT_PLUS = 'PLUS'  # +
@@ -84,12 +86,17 @@ TT_L_PAREN = 'L_PAREN'  # (
 TT_R_PAREN = 'R_PAREN'  # )
 TT_L_BRACKET = 'L_BRACKET'  # {
 TT_R_BRACKET = 'R_BRACKET'  # }
+TT_L_SQUARE = 'L_SQUARE'  # [
+TT_R_SQUARE = 'R_SQUARE'  # ]
 
 # Specials
 TT_IDENTIFIER = 'IDENTIFIER'  # name of int or var (ie: var IDENTIFIER = 2)
-TT_KEYWORD = 'KEYWORD'  # var || int
+TT_KEYWORD = 'KEYWORD'  # var || int || words found in KEYWORDS
+TT_METHOD = 'METHOD'  # .
+TT_EL = 'EL'  # ;
 
 # Comparators and logical operators
+TT_ASSIGN = 'ASSIGN'    # :=
 TT_EE = 'EE'  # ==
 TT_NE = 'NE'  # !=
 TT_LT = 'LT'  # <
@@ -100,7 +107,17 @@ TT_GTE = 'GTE'  # >=
 KEYWORDS = [
     'int',
     'read',
-    'write'
+    'write',
+    'AND',
+    'OR',
+    'NOT',
+    'IF',
+    'ELSE',
+    'WHILE',
+    'FOR',
+    'RETURN',
+    'CONTINUE',
+    'BREAK'
 ]
 
 
@@ -132,7 +149,7 @@ class Token:
 ########################################################################################################################
 #   Lexer:
 #
-#   This class
+#   This class will look through the input txt in order to create a list of tokens that are recognized
 #
 #    This class was made following the tutorials :
 #    https://www.youtube.com/watch?v=Eythq9848Fg & https://ruslanspivak.com/lsbasi-part7/
@@ -172,8 +189,8 @@ class Lexer:
         # While the currentChar is not the end of the text
         while self.current_char is not None:
 
-            # ignore spaces and tabs
-            if self.current_char in ' \t':
+            # ignore spaces, tabs, and new lines
+            if self.current_char in ' \t\n':
                 self.advance()
 
             # check if it's a letter to know that it will be an identifier or keyword
@@ -183,6 +200,19 @@ class Lexer:
             # check it it's a digit and since numbers are more than one character create the number
             elif self.current_char in DIGITS:
                 token_list.append(self.make_number())
+
+            # end line ;
+            elif self.current_char == ';':
+                token_list.append(Token(TT_EL, pos_start=self.pos))
+                self.advance()
+
+            elif self.current_char == '.':
+                token_list.append(Token(TT_METHOD, pos_start=self.pos))
+                self.advance()
+
+            # if " then make a string token
+            elif self.current_char == '"':
+                token_list.append(self.make_string())
 
             # check if it's an arithmetic
             elif self.current_char == '+':
@@ -203,10 +233,22 @@ class Lexer:
 
             # check if it's a pair
             elif self.current_char == '(':
-                token_list.append(Token(TT_R_PAREN))
+                token_list.append(Token(TT_L_PAREN))
                 self.advance()
             elif self.current_char == ')':
-                token_list.append(Token(TT_L_PAREN))
+                token_list.append(Token(TT_R_PAREN))
+                self.advance()
+            elif self.current_char == '{':
+                token_list.append(Token(TT_L_BRACKET))
+                self.advance()
+            elif self.current_char == '}':
+                token_list.append(Token(TT_R_BRACKET))
+                self.advance()
+            elif self.current_char == '[':
+                token_list.append(Token(TT_L_SQUARE))
+                self.advance()
+            elif self.current_char == ']':
+                token_list.append(Token(TT_R_SQUARE))
                 self.advance()
 
             # Comparators and logical operators
@@ -216,6 +258,10 @@ class Lexer:
                 token_list.append(self.make_greater_than())
             elif self.current_char == '=':
                 token_list.append(self.make_equals())
+            elif self.current_char == ':':
+                full_token, mismatch_error = self.make_assign()
+                if mismatch_error:
+                    return [], mismatch_error
             elif self.current_char == '!':
                 full_token, mismatch_error = self.make_not_equals()
                 if mismatch_error:
@@ -236,7 +282,7 @@ class Lexer:
         # returns the list of tokens found in order and no error
         return token_list, None
 
-    #
+    # gather digits after the initial digit has been found in order to make a number of type INT or FLOAT
     def make_number(self):
         num_str = ''
         dot_count = 0
@@ -267,6 +313,7 @@ class Lexer:
         else:
             return Token(TT_FLOAT, float(num_str), pos_start, self.pos)
 
+    # Makes an Identifier token and adds it to the array
     def make_identifier(self):
         identifier_string = ''
         pos_start = self.pos.copy()
@@ -279,6 +326,20 @@ class Lexer:
 
         return Token(token_type, identifier_string, pos_start, self.pos)
 
+    # Makes an assigner token := by checking that = comes after : or else throws mismatch error
+    def make_assign(self):
+        pos_start = self.pos.copy()
+        self.advance()  # because we know that ':' called this method
+
+        # Determine if ':='
+        if self.current_char == '=':
+            self.advance()
+            return Token(TT_ASSIGN, pos_start=pos_start, pos_end=self.pos), None
+
+        self.advance()
+        return None, ExpectedCharError(pos_start, self.pos, "'=' (after ':')")
+
+    # Makes a != token by checking what comes after the ! returns error if no =
     def make_not_equals(self):
         pos_start = self.pos.copy()
         self.advance()  # because we know that '!' called this method
@@ -291,6 +352,7 @@ class Lexer:
         self.advance()
         return None, ExpectedCharError(pos_start, self.pos, "'=' (after '!')")
 
+    # Makes an equals token of types = | ==
     def make_equals(self):
         token_type = TT_EQUALS
         pos_start = self.pos.copy()
@@ -303,6 +365,7 @@ class Lexer:
 
         return Token(token_type, pos_start=pos_start, pos_end=self.pos)
 
+    # makes a < token or a <=
     def make_less_than(self):
         token_type = TT_LT
         pos_start = self.pos.copy()
@@ -315,6 +378,7 @@ class Lexer:
 
         return Token(token_type, pos_start=pos_start, pos_end=self.pos)
 
+    # makes a > or >=
     def make_greater_than(self):
         token_type = TT_GT
         pos_start = self.pos.copy()
@@ -327,6 +391,41 @@ class Lexer:
 
         return Token(token_type, pos_start=pos_start, pos_end=self.pos)
 
+    def make_string(self):
+        string_var = ''
+        escape_char = False  # Checks for string escape characters such as \ || \n
+
+        pos_start = self.pos.copy()
+        self.advance()  # because we know that '>' called this method
+
+        # Dictionary of accepted escape characters such as \n or \t
+        escape_characters = {
+            'n': '\n',
+            't': '\t'
+        }
+
+        # As long as it's not the end of the input or the end of the string builder " then it's part of the string_var
+        while self.current_char is not None and (self.current_char != '"' or escape_char):
+            # If the previous char in the string was \ then anything is accepted after
+            if escape_char:
+                # checks for character replacements in the dictionary
+                string_var += escape_characters.get(self.current_char, self.current_char)
+                escape_char = False
+            else:
+                # Checks for escape character \
+                if self.current_char == '\\':
+                    escape_char = True
+                else:
+                    string_var += self.current_char
+                    escape_char = False
+
+            self.advance()
+
+        self.advance()  # because it stops on the "
+
+        return Token(TT_STRING, string_var, pos_start, self.pos)
+
+
 ########################################################################################################################
 #   RUN:
 #
@@ -337,7 +436,30 @@ class Lexer:
 if __name__ == '__main__':
 
     file_name = "Console"
-    micro_c_code = "read int i = ( 2.13 + 5) i >= 3 write(i)"
+    micro_c_code = """
+    { int i;
+        {int fst; int snd} R;
+        int[10] A;
+        while (i < 10)
+            { read A[i];
+                i := i + 1;
+            }
+        i := 0;
+        while (i < 10)
+            { if (A[i] >= 0)
+                { R.fst := R.fst + A[i];
+                    i := i + 1;
+                }
+            else { i := i + 1;
+                break;
+            }
+            R.snd := R.snd + 1;
+            }
+        write (R.fst_R.snd);
+    }
+    """
+
+    print(micro_c_code)
 
     lexer = Lexer(file_name, micro_c_code)
     tokens, error = lexer.make_tokens()

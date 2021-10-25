@@ -4,6 +4,7 @@
 #   This class is used when an error happens within the lexer
 ########################################################################################################################
 import string
+from compiler.static import *
 
 
 class Error:
@@ -68,82 +69,36 @@ class Position:
 ########################################################################################################################
 
 
-# Variables
-TT_INT = 'INT'
-TT_FLOAT = 'FLOAT'
-TT_STRING = 'STRING'
 
-# Arithmetic
-TT_PLUS = 'PLUS'  # +
-TT_MINUS = 'MINUS'  # -
-TT_MUL = 'MUL'  # *
-TT_DIV = 'DIV'  # /
-TT_POW = 'POW'  # ^
-TT_EQUALS = 'EQUALS'  # =
-
-# Pairs
-TT_L_PAREN = 'L_PAREN'  # (
-TT_R_PAREN = 'R_PAREN'  # )
-TT_L_BRACKET = 'L_BRACKET'  # {
-TT_R_BRACKET = 'R_BRACKET'  # }
-TT_L_SQUARE = 'L_SQUARE'  # [
-TT_R_SQUARE = 'R_SQUARE'  # ]
-
-# Specials
-TT_IDENTIFIER = 'IDENTIFIER'  # name of int or var (ie: var IDENTIFIER = 2)
-TT_KEYWORD = 'KEYWORD'  # var || int || words found in KEYWORDS
-TT_METHOD = 'METHOD'  # .
-TT_EL = 'EL'  # ;
-
-# Comparators and logical operators
-TT_ASSIGN = 'ASSIGN'    # :=
-TT_EE = 'EE'  # ==
-TT_NE = 'NE'  # !=
-TT_LT = 'LT'  # <
-TT_GT = 'GT'  # >
-TT_LTE = 'LTE'  # <=
-TT_GTE = 'GTE'  # >=
-
-KEYWORDS = [
-    'int',
-    'read',
-    'write',
-    'AND',
-    'OR',
-    'NOT',
-    'IF',
-    'ELSE',
-    'WHILE',
-    'FOR',
-    'RETURN',
-    'CONTINUE',
-    'BREAK'
-]
 
 
 class Token:
-    def __init__(self, type_, value=None, pos_start=None, pos_end=None):
-        self.type = type_
+    def __init__(self, type, value=None, pos_start=None, pos_end=None):
+        self.type = type
         self.value = value
 
-        if pos_start:
-            self.pos_start = pos_start.copy()
-            self.pos_end = pos_start.copy()
-            self.pos_end.advance()
+        # if pos_start:
+        #     self.pos_start = pos_start.copy()
+        #     self.pos_end = pos_start.copy()
+        #     self.pos_end.advance()
 
-        if pos_end:
-            self.pos_end = pos_end
+        # if pos_end:
+        #     self.pos_end = pos_end
 
     # checks if the token matches the given type and value
-    def matcher(self, type_, value):
-        return self.type == type_ and self.value == value
+    def matcher(self, type, value):
+        return self.type == type and self.value == value
 
     # How the token is represented e.g. in console [type:value] || if no value [type]
     def __repr__(self):
-        if self.value:
-            return f'{self.type}:{self.value}'
+        # if self.value:
+        #     return f'{self.type}:{self.value}'
 
-        return f'{self.type}'
+        # return f'{self.type}'
+        return 'Token({type}, {value})'.format(
+            type=self.type,
+            value=repr(self.value)
+        )
 
 
 ########################################################################################################################
@@ -163,24 +118,110 @@ LETTERS_DIGITS = LETTERS + DIGITS
 
 class Lexer:
 
-    def __init__(self, filename, micro_code_txt):
+    def __init__(self, micro_code_txt):
         self.text = micro_code_txt
-        self.fn = filename
-
+        # print(self.text)
         # The current position and character that the lexer is looking at
         # pos starts at -1 because the lexer immediately advances a position when constructed
-        self.pos = Position(-1, 0, -1, self.fn)
-        self.current_char = None
+        # self.pos = Position(-1, 0, -1, self.fn)
+        self.pos = 0
+        self.current_char = self.text[self.pos]
 
-        self.advance()
+        # self.advance()
 
     # Advances one position in the text and sets the current_char
     def advance(self):
         # is the same as self.pos += 1 but using custom position object to keep track of line and col
-        self.pos.advance(self.current_char)
+        # self.pos.advance(self.current_char)
 
-        # Sets the current character equal to that of the position unless it's the end of the text
-        self.current_char = self.text[self.pos.idx] if self.pos.idx < len(self.text) else None
+        # # Sets the current character equal to that of the position unless it's the end of the text
+        # self.current_char = self.text[self.pos.idx] if self.pos.idx < len(self.text) else None
+        self.pos += 1
+        if self.pos > len(self.text) - 1:
+            self.current_char = None  # Indicates end of input
+        else:
+            self.current_char = self.text[self.pos]
+
+            
+    def skip_whitespace(self):
+        while self.current_char is not None and self.current_char.isspace():
+            self.advance()
+
+            
+    def make_number(self):
+        # num_str = ''
+        # dot_count = 0
+
+        # pos_start = self.pos.copy()
+
+        # # Check if next character is also a digit or a dot in order to create the number
+        # while self.current_char is not None and self.current_char in DIGITS + '.':
+
+        #     # a '.' indicates that the number is a float
+        #     if self.current_char == '.':
+        #         # There can't be more than 1 dot in a float ie 233.1.5
+        #         if dot_count == 1:
+        #             break
+
+        #         dot_count += 1
+        #         num_str += '.'
+
+        #     # If it's not a dot then it is a digit
+        #     else:
+        #         num_str += self.current_char
+
+        #     self.advance()
+
+        # Assigns the Token Type if there is a dot= float or not = int
+        # if dot_count == 0:
+        #     return Token(TT_INT, int(num_str), pos_start, self.pos)
+        # else:
+        #     return Token(TT_FLOAT, float(num_str), pos_start, self.pos)
+        result = ''
+        while self.current_char is not None and self.current_char.isdigit():
+            result += self.current_char
+            self.advance()
+        return int(result)
+        
+        
+    def get_next_token(self):
+        while self.current_char is not None:
+
+            if self.current_char.isspace():
+                self.skip_whitespace()
+                continue
+
+            if self.current_char.isdigit():
+                return Token(TT_INT, self.make_number())
+
+            if self.current_char == '+':
+                self.advance()
+                return Token(TT_PLUS, '+')
+
+            if self.current_char == '-':
+                self.advance()
+                return Token(TT_MINUS, '-')
+
+            if self.current_char == '*':
+                self.advance()
+                return Token(TT_MUL, '*')
+
+            if self.current_char == '/':
+                self.advance()
+                return Token(TT_DIV, '/')
+
+            if self.current_char == '(':
+                self.advance()
+                return Token(TT_L_PAREN, '(')
+
+            if self.current_char == ')':
+                self.advance()
+                return Token(TT_R_PAREN, ')')
+
+            self.error()
+
+        return Token(TT_EOF, None)
+
 
     # Assigns the current char to a Token and appends it to the tokens list
     def make_tokens(self):
@@ -283,35 +324,7 @@ class Lexer:
         return token_list, None
 
     # gather digits after the initial digit has been found in order to make a number of type INT or FLOAT
-    def make_number(self):
-        num_str = ''
-        dot_count = 0
-
-        pos_start = self.pos.copy()
-
-        # Check if next character is also a digit or a dot in order to create the number
-        while self.current_char is not None and self.current_char in DIGITS + '.':
-
-            # a '.' indicates that the number is a float
-            if self.current_char == '.':
-                # There can't be more than 1 dot in a float ie 233.1.5
-                if dot_count == 1:
-                    break
-
-                dot_count += 1
-                num_str += '.'
-
-            # If it's not a dot then it is a digit
-            else:
-                num_str += self.current_char
-
-            self.advance()
-
-        # Assigns the Token Type if there is a dot= float or not = int
-        if dot_count == 0:
-            return Token(TT_INT, int(num_str), pos_start, self.pos)
-        else:
-            return Token(TT_FLOAT, float(num_str), pos_start, self.pos)
+    
 
     # Makes an Identifier token and adds it to the array
     def make_identifier(self):
@@ -433,38 +446,38 @@ class Lexer:
 ########################################################################################################################
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    file_name = "Console"
-    micro_c_code = """
-    { int i;
-        {int fst; int snd} R;
-        int[10] A;
-        while (i < 10)
-            { read A[i];
-                i := i + 1;
-            }
-        i := 0;
-        while (i < 10)
-            { if (A[i] >= 0)
-                { R.fst := R.fst + A[i];
-                    i := i + 1;
-                }
-            else { i := i + 1;
-                break;
-            }
-            R.snd := R.snd + 1;
-            }
-        write (R.fst_R.snd);
-    }
-    """
+#     file_name = "Console"
+#     micro_c_code = """
+#     { int i;
+#         {int fst; int snd} R;
+#         int[10] A;
+#         while (i < 10)
+#             { read A[i];
+#                 i := i + 1;
+#             }
+#         i := 0;
+#         while (i < 10)
+#             { if (A[i] >= 0)
+#                 { R.fst := R.fst + A[i];
+#                     i := i + 1;
+#                 }
+#             else { i := i + 1;
+#                 break;
+#             }
+#             R.snd := R.snd + 1;
+#             }
+#         write (R.fst_R.snd);
+#     }
+#     """
 
-    print(micro_c_code)
+#     print(micro_c_code)
 
-    lexer = Lexer(file_name, micro_c_code)
-    tokens, error = lexer.make_tokens()
+#     lexer = Lexer(file_name, micro_c_code)
+#     tokens, error = lexer.make_tokens()
 
-    if error:
-        print(error)
-    else:
-        print(tokens)
+#     if error:
+#         print(error)
+#     else:
+#         print(tokens)

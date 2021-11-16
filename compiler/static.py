@@ -2,6 +2,11 @@
 TT_INT = 'INT'
 TT_FLOAT = 'FLOAT'
 TT_STRING = 'STRING'
+TT_RECORD = 'RECORD'
+
+# Variable
+TT_VAR_INT = 'VAR_INT'
+TT_VAR_TYPE = 'VAR_TYPE'
 
 # Arithmetic
 TT_PLUS = 'PLUS'  # +
@@ -35,6 +40,7 @@ TT_LTE = 'LTE'  # <=
 TT_GTE = 'GTE'  # >=
 
 TT_EOF = 'EOF'
+TT_SEMI = 'SEMI' # ;
 
 KEYWORDS = [
     'int',
@@ -51,3 +57,5 @@ KEYWORDS = [
     'CONTINUE',
     'BREAK'
 ]
+
+TT_ZERO = '0'

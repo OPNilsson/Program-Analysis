@@ -16,7 +16,7 @@ TT_DIV = 'DIV'  # /
 TT_POW = 'POW'  # ^
 TT_EQUALS = 'EQUALS'  # =
 
-# Scopes
+# Pairs
 TT_L_PAREN = 'L_PAREN'  # (
 TT_R_PAREN = 'R_PAREN'  # )
 TT_L_BRACKET = 'L_BRACKET'  # {
@@ -39,23 +39,5 @@ TT_GT = 'GT'  # >
 TT_LTE = 'LTE'  # <=
 TT_GTE = 'GTE'  # >=
 
-TT_EOF = 'EOF'
-TT_SEMI = 'SEMI' # ;
-
-KEYWORDS = [
-    'int',
-    'read',
-    'write',
-    'AND',
-    'OR',
-    'NOT',
-    'IF',
-    'ELSE',
-    'WHILE',
-    'FOR',
-    'RETURN',
-    'CONTINUE',
-    'BREAK'
-]
-
 TT_ZERO = '0'
+TT_SEMI = 'SEMI' # ;

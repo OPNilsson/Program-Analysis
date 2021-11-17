@@ -1,10 +1,12 @@
+from compiler.interpreter import Interpreter
+from compiler.lexer import Lexer
+from compiler.parser import Parser
+
 ########################################################################################################################
 #   Main Program:
 #
 #   This file runs the program in the intended format
 ########################################################################################################################
-from compiler.lexer import Lexer
-
 if __name__ == '__main__':
 
     file_name = "Console"
@@ -31,11 +33,38 @@ if __name__ == '__main__':
     }
     """
 
-    print(micro_c_code)
+    test_code = """
+    -2 + 6 * 5
+    """
 
-    lexer = Lexer(file_name, micro_c_code)
+    print(test_code)
+
+    # Generates teh tokens and returns either the list of tokens or an error
+    lexer = Lexer(file_name ,test_code)
     tokens, error = lexer.make_tokens()
 
     if error:
         print(error)
+    else:
+        print("Lexer Tokens:")
+        print(tokens)
+
+        # Generates the syntax tree and returns either the tree or the error
+        parser = Parser(tokens)
+        ast = parser.parse()
+
+        if error:
+            print(ast.error)
+        else:
+            print()
+            print("Parser Priorities `()`")
+            print(ast.node)
+
+            interpreter = Interpreter()
+
+            # Re configures the AST into a list of Node Objects
+            interpreter.visit(ast.node)
+
+            interpreter.view_tree()
+
 

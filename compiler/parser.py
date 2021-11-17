@@ -1,286 +1,178 @@
-from compiler.lexer import Lexer, Token
-from compiler.static import *
+from compiler.error import InvalidSyntaxError
+from compiler.tokenTypes import Token, TT_PLUS, TT_EL, TT_METHOD, TT_MINUS, TT_MUL, TT_DIV, TT_POW, TT_L_PAREN, \
+    TT_R_PAREN, TT_L_BRACKET, TT_R_BRACKET, TT_L_SQUARE, TT_R_SQUARE, TT_INT, TT_FLOAT, TT_KEYWORD, TT_IDENTIFIER, \
+    TT_ASSIGN, TT_NE, TT_EQUALS, TT_EE, TT_LT, TT_LTE, TT_GTE, TT_GT, TT_STRING, TT_EOF
 
-class AST(object):
-    pass
+
+########################################################################################################################
+#   Nodes:
+#
+#   This section contains the possible node types for the syntax tree
+########################################################################################################################
+
+class NumberNode:
+    def __init__(self, tok):
+        self.tok = tok
+
+        self.pos_start = self.tok.pos_start
+        self.pos_end = self.tok.pos_end
+
+    def __repr__(self):
+        return f'{self.tok}'
 
 
-class Compound(AST):
-    # Represents a list of statement nodes
-    def __init__(self):
-        self.children = []
-        
-class Assign(AST):
-    def __init__(self, left, right, operation):
-        self.left = left
-        self.right = right
-        self.token = self.operation = operation
-        
-class ZeroNode(AST):
-    def __init__(self):
-        self.token = Token(TT_ZERO, '0')
-        self.value = self.token.value
-        
-class Variable(AST):
-    def __init__(self, token):
-        self.token = token
-        self.value = token.value
-        
-class Type(AST):
-    def __init__(self, token):
-        self.token = token
-        self.value = token.value
-        
-class NoOp(AST):
-    pass
+class BinOpNode:
+    def __init__(self, left_node, op_tok, right_node):
+        self.left_node = left_node
+        self.op_tok = op_tok
+        self.right_node = right_node
 
-class VariableDeclaration(AST):
-    def __init__(self, type_node, var_node):
-        self.type_node = type_node
-        self.var_node = var_node
-        self.assign_node = Assign(self.var_node, ZeroNode(), Token(TT_ASSIGN, ':='))
+        self.pos_start = self.left_node.pos_start
+        self.pos_end = self.right_node.pos_end
 
-class UnaryOp(AST):
-    def __init__(self, operation, expression):
-        self.token = self.operation = operation
-        self.expression = expression
+    def __repr__(self):
+        return f'({self.left_node}, {self.op_tok}, {self.right_node})'
 
-class BinOp(AST):
-    def __init__(self, left, right, operation):
-        self.left = left
-        self.right = right
-        self.token = self.operation = operation
-        
-class Record(AST):
-    def __init__(self, children):
-        self.children = children
-        self.token = Token('R', 'R')
 
-class Integer(AST):
-    def __init__(self, token):
-        self.token = token
-        self.value = token.value
+class UnaryOpNode:
+    def __init__(self, op_tok, node):
+        self.op_tok = op_tok
+        self.node = node
 
-class Parser(object):
-    
-    def __init__(self, lexer):
-        self.lexer = lexer
-        self.curr_token = self.lexer.get_next_token()
-        
-    def error(self):
-        raise Exception('Invalid syntax')
-        
-    def consume(self, token_type):
-        # look at the type of the current token and
-        # compare it with the passed token type, if 
-        # there is a match, consume the token, otherwise
-        # raise exception
-        # print(self.curr_token.type, token_type)
-        if self.curr_token.type == token_type: 
-            self.curr_token = self.lexer.get_next_token()
-        else:
-            print('consume error')
-            self.error()
-            
-    def parse_factor(self):
-        token = self.curr_token
-        if token.type == TT_PLUS:
-            self.consume(TT_PLUS)
-            node = UnaryOp(token, self.parse_factor())
-            return node
-        elif token.type == TT_MINUS:
-            self.consume(TT_MINUS)
-            node = UnaryOp(token, self.parse_factor())
-            return node
-        elif token.type == TT_INT:
-            self.consume(TT_INT)
-            return Integer(token)
-        elif token.type == TT_L_PAREN:
-            self.consume(TT_L_PAREN)
-            node = self.parse_expression()
-            self.consume(TT_R_PAREN)
-            return node
-        else:
-            node = self.parse_assign_statement()
-            return node
-        
-    def parse_term(self):
-        node = self.parse_factor()
-        while self.curr_token.type in (TT_MUL, TT_DIV):
-            token = self.curr_token
-            if token.type == TT_MUL:
-                self.consume(TT_MUL)
-            elif token.type == TT_DIV:
-                self.consume(TT_DIV)
-                
-            node = BinOp(left=node, right=self.parse_factor(), operation=token)
-        return node
-    
-    def parse_expression(self):
-        node = self.parse_term()
-        
-        while self.curr_token.type in (TT_PLUS, TT_MINUS):
-            token = self.curr_token
-            if token.type == TT_PLUS:
-                self.consume(TT_PLUS)
-            elif token.type == TT_MINUS:
-                self.consume(TT_MINUS)
-                
-            node = BinOp(left=node, right=self.parse_term(), operation=token)
-        
-        return node
-    
+        self.pos_start = self.op_tok.pos_start
+        self.pos_end = node.pos_end
+
+    def __repr__(self):
+        return f'({self.op_tok}, {self.node})'
+
+########################################################################################################################
+#   Parser:
+#
+#   This class will look through the input tokens list  in order to create a syntax tree
+#
+#    This class was made following the tutorials :
+#    https://www.youtube.com/watch?v=Eythq9848Fg & https://ruslanspivak.com/lsbasi-part7/
+#
+#   Adapted for use in a Micro-C language environment without the need of a compiler
+#   not all parts of the tutorials are implemented!
+########################################################################################################################
+
+
+class Parser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.tok_idx = -1
+        self.advance()
+
+    def advance(self):
+        self.tok_idx += 1
+        self.update_current_tok()
+        return self.current_tok
+
+    def reverse(self, amount=1):
+        self.tok_idx -= amount
+        self.update_current_tok()
+        return self.current_tok
+
+    # Taken out of the advance method in order to be used in the reverse method as well
+    def update_current_tok(self):
+        if 0 <= self.tok_idx < len(self.tokens):
+            self.current_tok = self.tokens[self.tok_idx]
+
     def parse(self):
-        node = self.parse_program()
-        if self.curr_token.type != TT_EOF and self.curr_token.type != TT_RECORD:
-            print('parse error')
-            self.error()
-            
-        return node
-    
-    def parse_program(self):
-        # Set of Declarations and Statements
-        return self.parse_compound_statement()
-    
-    def parse_compound_statement(self):
-        self.consume(TT_L_BRACKET)
-        nodes = self.parse_statement_list()
-        self.consume(TT_R_BRACKET)
-        
-        root = Compound()
-        for node in nodes:
-            root.children.append(node)        
-        return root
-        
-    def parse_statement_list(self):
-        node = self.parse_statement()
-        
-        results = [node]
-        
-        while self.curr_token.type == TT_SEMI:
-            self.consume(TT_SEMI)
-            results.append(self.parse_statement())
-        if self.curr_token.type == TT_IDENTIFIER:
-            print('statement error')
-            self.error()
-        return results
-        
-    def parse_statement(self):
-        # if self.curr_token.type == TT_L_BRACKET:
-        #     node = self.parse_compound_statement()
-        if self.curr_token.type == TT_IDENTIFIER:
-            node = self.parse_assign_statement()
-        elif self.curr_token.type == TT_VAR_TYPE:
-            node = self.parse_variable_declaration()
-        elif self.curr_token.type == TT_RECORD:
-            node = self.parse_record()
-        else:
-            node = self.empty()
-        return node
-    
-            
-    def parse_assign_statement(self):
-        left = self.parse_variable()
-        token = self.curr_token
-        self.consume(TT_ASSIGN)
-        right = self.parse_expression()
-        node = Assign(left, right, token) 
-        return node
+        res = self.expr()
+        if not res.error and self.current_tok.type != TT_EOF:
+            return res.failure(InvalidSyntaxError(
+                self.current_tok.pos_start, self.current_tok.pos_end,
+                "Expected '+', '-', '*' or '/'"
+            ))
+        return res
 
-    
-    def parse_variable(self):
-        node = Variable(self.curr_token)
-        self.consume(TT_IDENTIFIER)
-        return node
-    
-    def parse_type(self):
-        token = self.curr_token
-        if token.type == TT_VAR_TYPE:
-            self.consume(TT_VAR_TYPE)
-        node = Type(token)
-        return node
-    
-    def parse_variable_declaration(self):
-        type_node = self.parse_type()
-        var_node = self.parse_variable()
-        declaration = VariableDeclaration(type_node, var_node)
-        return declaration
-    
-    def empty(self):
-        return NoOp()
-    
-    def parse_record(self):
-        # self.consume(TT_L_BRACKET)
-        nodes = self.parse_statement_list()
-        # self.consume(TT_R_BRACKET)
-        self.consume(TT_RECORD)
-        self.consume(TT_SEMI)
-        root = Record(nodes)
-        # for node in nodes:
-        #     root.children.append(node)        
-        return root        
-        
-    
-class Traversal(object):
-    GLOBAL_SCOPE = {}
-        
-    def visit_node(self, node):
-        method_name = 'visit_' + type(node).__name__
-        visitor = getattr(self, method_name, self.visit_exception)
-        return visitor(node)
-    
-    def visit_exception(self, node):
-        raise Exception('No visit_{} method'.format(type(node).__name__))
-    
-    def visit_UnaryOp(self, node):
-        if node.operaion.type == TT_PLUS:
-            return +self.visit_node(node.expression)
-        if node.operaion.type == TT_MINUS:
-            return -self.visit_node(node.expression)
-        
-    def visit_BinOp(self, node):
-        if node.operation.type == TT_PLUS:
-            return self.visit_node(node.left) + self.visit_node(node.right)
-        elif node.operation.type == TT_MINUS:
-            return self.visit_node(node.left) - self.visit_node(node.right)
-        elif node.operation.type == TT_MUL:
-            return self.visit_node(node.left) * self.visit_node(node.right)
-        elif node.operation.type == TT_DIV:
-            return self.visit_node(node.left) / self.visit_node(node.right)
+########################################################################################################################
+#   Subsection containing all the methods representing the rules that are found inside the grammar.txt file
+########################################################################################################################
 
-    def visit_Integer(self, node):
-        return node.value.value
-    
-    def visit_Compound(self, node):
-        for child in node.children:
-            self.visit_node(child)
-    
-    def visit_NoOp(self, node):
-        pass
-    
-    def visit_Assign(self, node):
-        var_name = node.left.value
-        self.GLOBAL_SCOPE[var_name] = self.visit_node(node.right)
-    
-    def visit_Variable(self, node):
-        var_name = node.value
-        val = self.GLOBAL_SCOPE.get(var_name)
-        if val is None:
-            raise NameError(repr(var_name))
-        else:
-            return val
-        
-    def visit_VariableDeclaration(self, node):
-        # Do nothing
-        pass
+    def factor(self, TT_LPAREN=None, TT_RPAREN=None):
+        res = ParseResult()
+        tok = self.current_tok
 
-    def visit_Type(self, node):
-        # Do nothing
-        pass
-    
-    def visit_ZeroNode(self, node):
-        # Do nothing
-        pass
-    
-    def visit_Record(self, node):
-        pass
+        if tok.type in (TT_PLUS, TT_MINUS):
+            res.register(self.advance())
+            factor = res.register(self.factor())
+            if res.error: return res
+            return res.success(UnaryOpNode(tok, factor))
+
+        elif tok.type in (TT_INT, TT_FLOAT):
+            res.register(self.advance())
+            return res.success(NumberNode(tok))
+
+        elif tok.type == TT_LPAREN:
+            res.register(self.advance())
+            expr = res.register(self.expr())
+            if res.error: return res
+            if self.current_tok.type == TT_RPAREN:
+                res.register(self.advance())
+                return res.success(expr)
+            else:
+                return res.failure(InvalidSyntaxError(
+                    self.current_tok.pos_start, self.current_tok.pos_end,
+                    "Expected ')'"
+                ))
+
+        return res.failure(InvalidSyntaxError(
+            tok.pos_start, tok.pos_end,
+            "Expected int, float, identifier, '+', '-', '(', '[', IF', 'FOR', 'WHILE', 'FUN'"
+        ))
+
+    def term(self):
+        return self.bin_op(self.factor, (TT_MUL, TT_DIV))
+
+    def expr(self):
+        return self.bin_op(self.term, (TT_PLUS, TT_MINUS))
+
+########################################################################################################################
+#   Subsection containing all the methods on how different operations are defined
+########################################################################################################################
+
+    def bin_op(self, func, ops):
+        res = ParseResult()
+        left = res.register(func())
+        if res.error: return res
+
+        while self.current_tok.type in ops:
+            op_tok = self.current_tok
+            res.register(self.advance())
+            right = res.register(func())
+            if res.error: return res
+            left = BinOpNode(left, op_tok, right)
+
+        return res.success(left)
+
+########################################################################################################################
+
+########################################################################################################################
+#   ParseResult:
+#
+#   This class formats the node result from the parser and tracks errors if there are any found
+########################################################################################################################
+
+
+class ParseResult:
+    def __init__(self):
+        self.error = None
+        self.node = None
+
+    def register(self, res):
+        if isinstance(res, ParseResult):
+            if res.error: self.error = res.error
+            return res.node
+
+        return res
+
+    def success(self, node):
+        self.node = node
+        return self
+
+    def failure(self, error):
+        self.error = error
+        return self

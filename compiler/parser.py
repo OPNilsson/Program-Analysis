@@ -56,6 +56,18 @@ class Record(AST):
         self.children = children
         self.token = Token('R', 'R')
 
+class Condition(AST):
+    def __init__(self, left, right, operation):
+        self.left = left
+        self.right = right
+        self.token = self.operation = operation
+
+class If(AST):
+    def __init__(self, condition, children):
+        self.condition = condition
+        self.children = children
+        self.token = Token('If', 'If')
+
 class Integer(AST):
     def __init__(self, token):
         self.token = token
@@ -75,7 +87,7 @@ class Parser(object):
         # compare it with the passed token type, if 
         # there is a match, consume the token, otherwise
         # raise exception
-        # print(self.curr_token.type, token_type)
+        print(self.curr_token.type, token_type)
         if self.curr_token.type == token_type: 
             self.curr_token = self.lexer.get_next_token()
         else:
@@ -115,6 +127,26 @@ class Parser(object):
                 
             node = BinOp(left=node, right=self.parse_factor(), operation=token)
         return node
+
+
+
+    def parse_condition(self):
+        node = self.parse_term()
+
+        while self.curr_token.type in (TT_LT, TT_GT, TT_LTE, TT_GTE):
+            token = self.curr_token
+            if token.type == TT_LT:
+                self.consume(TT_LT)
+            elif token.type == TT_LTE:
+                self.consume(TT_LTE)
+            elif token.type == TT_GT:
+                self.consume(TT_GT)
+            elif token.type == TT_GTE:
+                self.consume(TT_GTE)
+
+            node = Condition(left=node, right=self.parse_factor(), operation=token)
+        return node
+
     
     def parse_expression(self):
         node = self.parse_term()
@@ -218,7 +250,16 @@ class Parser(object):
         root = Record(nodes)
         # for node in nodes:
         #     root.children.append(node)        
-        return root        
+        return root
+
+    def parse_if(self):
+        self.consume(TT_IF)
+        condition = self.parse_condition()
+        children = self.parse_compound_statement()
+        node = If(condition=condition, children=children)
+        return node
+
+
         
     
 class Traversal(object):
@@ -284,3 +325,12 @@ class Traversal(object):
     
     def visit_Record(self, node):
         pass
+
+    def visit_If(self, node):
+        pass
+
+    def visit_Condition(self, node):
+        pass
+
+
+

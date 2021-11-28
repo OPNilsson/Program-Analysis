@@ -158,6 +158,38 @@ class ASTVisualizer(Traversal):
         node._num = self.ncount
         self.ncount += 1
 
+    def visit_Condition(self, node):
+        s = '  node{} [label="{}"]\n'.format(self.ncount, node.operation.value)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        self.visit_node(node.left)
+        self.visit_node(node.right)
+
+        for child_node in (node.left, node.right):
+            s = '  node{} -> node{}\n'.format(node._num, child_node._num)
+            self.dot_body.append(s)
+
+
+
+
+    def visit_If(self, node):
+        s = '  node{} [label="If"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        for child in node.children:
+            self.visit_node(child)
+            s = '  node{} -> node{}\n'.format(node._num, child._num)
+            self.dot_body.append(s)
+
+        s = '  node{} [label="{}"]\n'.format(self.ncount, node.token)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
 def main():
     # argparser = argparse.ArgumentParser(
     #     description='Generate an AST DOT file.'
@@ -167,7 +199,7 @@ def main():
     #     help='Arithmetic expression (in quotes): "1 + 2 * 3"'
     # )
     # args = argparser.parse_args()
-    text = "{ int fst; int snd }"
+    text = "{ int a; if(a > 1){ a:=10 } }"
 
     lexer = Lexer(text)
     parser = Parser(lexer)

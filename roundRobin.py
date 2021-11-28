@@ -1,30 +1,30 @@
 # -*- coding: utf-8 -*-
 
 class Worklist(object):
-    def empty():
+    def empty(self, ):
         pass
     
-    def insert(q, W):
+    def insert(self, q, W):
         pass
     
-    def extract(W):
+    def extract(self, W):
         pass
     
 # W = (V, P)
 class LIFO(Worklist):
 
-    def empty():
+    def empty(self):
         return []
     
-    def insert(q, W):
+    def insert(self, q, W):
         return [q] + W
             
-    def extract(W):
+    def extract(self, ):
         return (W[0], W[1:]) 
     
 class FIFO(Worklist):
 
-    def empty():
+    def empty(self):
         return []
     
     def insert(q, W):
@@ -35,16 +35,16 @@ class FIFO(Worklist):
     
 class ImprovedRoundRobin(Worklist):
     
-    def empty():
+    def empty(self):
         return []
     
-    def insert(q, W):
+    def insert(self, q, W):
         if q in W[0]:
             return W
         else:
             return (W[0], W[1] + [q])
             
-    def extract(W):
+    def extract(self, W):
         if W[0] is None:
             VrP = sorted(W[1])
             q = VrP[1:]

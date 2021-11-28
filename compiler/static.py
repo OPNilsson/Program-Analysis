@@ -16,6 +16,8 @@ TT_DIV = 'DIV'  # /
 TT_POW = 'POW'  # ^
 TT_EQUALS = 'EQUALS'  # =
 
+TT_IF = 'IF'
+
 # Scopes
 TT_L_PAREN = 'L_PAREN'  # (
 TT_R_PAREN = 'R_PAREN'  # )

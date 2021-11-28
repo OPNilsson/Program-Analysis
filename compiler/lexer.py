@@ -58,8 +58,10 @@ RESERVED_TOKENS = {
     '}': Token(TT_R_BRACKET, '}'),
     'int': Token(TT_VAR_TYPE, 'int'),
     'float': Token(TT_VAR_TYPE, 'float'),
-    'R': Token(TT_RECORD, 'R')
+    'R': Token(TT_RECORD, 'R'),
+    'if': Token(TT_IF, 'IF')
 }
+
 
 class Lexer:
 
@@ -139,6 +141,11 @@ class Lexer:
         else:
             is_record = True
         return is_record
+
+    def is_if(self):
+        pass
+
+
         
     def get_next_token(self):
         while self.current_char is not None:
@@ -147,11 +154,11 @@ class Lexer:
                 continue
             
             if self.current_char.isalpha() or self.current_char in RESERVED_TOKENS.keys():
-                if self.current_char == '{' and self.is_record():
-                    return self.make_record()
                 return self.make_id()
-            
-            
+#                if self.current_char == '{' and self.is_record():
+#                   return self.make_record()
+
+
             if self.current_char == ':' and self.peek_next() == '=':
                 self.advance()
                 self.advance()

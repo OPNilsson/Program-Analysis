@@ -34,7 +34,7 @@ if __name__ == '__main__':
     """
 
     test_code = """
-    -2 + 6 * 5
+            3 + 3
     """
 
     print(test_code)

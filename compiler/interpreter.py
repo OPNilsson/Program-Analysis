@@ -89,7 +89,7 @@ class Interpreter:
 
     def visit_BinOpNode(self, node):
         # Reformat the node
-        node_interpreted = InterpretedNode()
+
 
         # Increase the index of the node
         self.index = self.index + 1

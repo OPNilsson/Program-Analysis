@@ -1,4 +1,7 @@
 from pyparsing import *
+from worklist import *
+from livevariable import *
+from programgraph import *
 
 ParserElement.enablePackrat()
 
@@ -101,9 +104,8 @@ for vname in (
     v = vars()[vname]
     v.setName(vname)
 
-
 def main():
-    test = r"""
+    average = r"""
     /* Just a comment! */
     int main() {
         int i;
@@ -124,9 +126,70 @@ def main():
     }    
     """
 
-    ast = program.parseString(test, parseAll=True)
+    fib = r"""
+    z := 1; 
+    y := 0;
+    t := 0;
+    for (i := 0; i < x; i := i + 1;){
+        t := z;
+        z := y;
+        y := t + z;
+    }
+    """
+
+    nested = r"""
+    x := 0; 
+    y := 0;
+    z := 0;
+    while(x < 10){
+        x := x + 1;
+        
+        while (y < 10){
+            y := y + 1;
+            
+            while(z < 10){
+                z := z + 1;
+            }
+        }
+    }
+    """
+
+    choice = input()
+
+    if choice == "1":
+        ast = program.parseString(average, parseAll=True)
+    elif choice == "2":
+        ast = program.parseString(fib, parseAll=True)
+    else:
+        ast = program.parseString(nested, parseAll=True)
+
     ast.pprint()
 
+    w = list()
+    fifo = FIFO()
+
+    print()
+    print(ast.dump())
+
+    print("-----------------------------------------")
+
+    PG_Builder = ProgramGraph(ast)
+    pg = PG_Builder.getPG()
+
+    print("-----------------------------------------")
+    for node in pg:
+        print(node.value)
+        w = fifo.insert(node, w)
+
+    lv = LiveVariable(w)
+
+    iteration = 0
+    for node in w:
+        iteration += 1
+        lv.solve(node)
+        iteration += lv.i
+
+    print(iteration)
 
 if __name__ == "__main__":
     main()
